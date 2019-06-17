@@ -41,7 +41,11 @@ def get_period():
 
 
 def main():
-	lz = lzzy('Ts','uid','pwd')
+	uid = "20170309007"
+	pwd = uid
+	lz = lzzy('Ts',uid,pwd)
+	day = "今天，"#今天||明天
+
 	#获取当前周数的课表
 	timeTable = lz.get_timeTable_ToWeek(get_week())
 	soup = BeautifulSoup(timeTable,"html5lib")
@@ -53,10 +57,11 @@ def main():
 	if period < 0:
 		period = 1
 		wd = wd + 1
+		day = "明天，"
 	#构造查找HTML id串
 	strfind = "Label_%d_%d"%(wd,period)
 	'Test'
-	strfind = "Label_2_1"
+	#strfind = "Label_2_1"
 	Course = soup.find(id=strfind).get_text()
 	#无课提示并且跳出
 	if Course == '' and len(Course) == 0:
@@ -69,43 +74,53 @@ def main():
 	Course = Course.replace('任课老师：','')
 	ArrayCourse = Course.strip().split(" ")
 	'Test'
-	print(ArrayCourse)
-	#删除空元素
+	#print(ArrayCourse)
+	#删除Lable_里的空元素
 	count = 0
 	while count < len(ArrayCourse):
-		print(ArrayCourse[count])
+#		print(ArrayCourse[count])
 		if ArrayCourse[count] == '' or len(ArrayCourse[count]) == 0:
 			del ArrayCourse[count]
-			print (count)
+#			print (count)
 			count = count - 1
 		count = count + 1
 	count = 0
 
 	'Test'
-	print ('Test ArrayCourse:\n')
-	print (ArrayCourse)
+	#print ('Test ArrayCourse:\n')
+	#print (ArrayCourse)
 
 	'构造参数，使用阿里云发送短信提示'
 	Class = ArrayCourse[2]
 	Location = ArrayCourse[5]
-	Time = ArrayCourse[0]+ArrayCourse[1]
+	Time = day+ArrayCourse[0]+ArrayCourse[1]
 
 	'Test'
+	#print('-------------')
+	#for i in ArrayCourse:
+	#	print(i)
 	print('-------------')
-	for i in ArrayCourse:
-		print(i)
+	print("课程:"+Class)
+	print("教室:"+Location)
+	print("时间:"+Time)
 	print('-------------')
-	print(Class)
-	print(Location)
-	print(Time)
 	#调用阿里云接口
+	print("---用阿里云接口---")
 	AliSend.send(Class,Location,Time)	
 
 
 if __name__ == '__main__':
-	scheduler = BlockingScheduler()
-	#每天13点10分提醒
-	scheduler.add_job(main, 'cron', hour=13,minute=10)
-	#每天22点25分提醒 提醒内容为明天早上
-	scheduler.add_job(tick, 'cron', hour=22,minute=35)
-	scheduler.start()
+	try:
+		print("---初始化定时任务列队---")
+		scheduler = BlockingScheduler()
+		print("注册任务：每天13点45分提醒")
+		#每天13点10分提醒
+		scheduler.add_job(main, 'cron', hour=13,minute=10)
+		print("注册任务：每天22点25分提醒 提醒内容为明天早上")
+		#每天22点25分提醒 提醒内容为明天早上
+		scheduler.add_job(main, 'cron', hour=22,minute=40)
+		print("执行中")
+		scheduler.start()
+	except (KeyboardInterrupt, SystemExit):
+		print("\n---删除所有作业并退出---")
+		scheduler.remove_all_jobs(jobstore=None)#删除所有作业
